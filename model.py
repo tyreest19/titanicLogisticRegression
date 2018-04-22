@@ -33,8 +33,20 @@ def gradientDescent(x, y, m, theta, alpha, iterations=1500):
 
 def test(x, y, m, theta):
     correct = 0
+    incorrect = 0
     for i in range(m):
-        pass
+        z = np.dot(
+                np.transpose(theta),
+                x[i]
+            )
+        predicted_value = sigmoid(z)
+        if predicted_value >= 0.5 and y[i] == 1:
+            correct += 1
+        elif predicted_value < 0.5 and y[i] == 0:
+            correct += 1
+        else:
+            incorrect += 1
+    return correct/m, incorrect/m
 
 if __name__ == '__main__':
 
@@ -49,3 +61,5 @@ if __name__ == '__main__':
     #print(costFunction(features, actual_values, len(features), theta))
     #print(np.transpose(theta))
     print('Final theta\'s \n', gradientDescent(features, actual_values, len(features[0]), theta, 0.001))
+    accuracy_rate, error_rate = test(features, actual_values, len(actual_values), theta)
+    print('Accuracy: {accuracy} \nError: {error}'.format(accuracy=accuracy_rate, error=error_rate))

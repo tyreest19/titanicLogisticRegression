@@ -1,7 +1,10 @@
+import os
 import math
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 import numpy as np
 import pandas as pd
+import pylab
 from sklearn.model_selection import train_test_split
 
 def sigmoid(z):
@@ -18,7 +21,7 @@ def costFunction(x, y, m, theta):
         loss += y[i] * np.log(sigmoid(z)) + (1 - y[i]) * np.log(1 - sigmoid(z))
     return -(1/m) * loss
 
-def gradientDescent(x, y, m, theta, alpha, iterations=1500):
+def gradientDescent(x, y, m, theta, alpha, iterations=1500, lossList=None):
     #return theta - (alpha/m)* np.transpose(x) * (sigmoid(x * theta) - y)
     for iteration in range(iterations):
         for j in range(len(theta)):
@@ -30,7 +33,10 @@ def gradientDescent(x, y, m, theta, alpha, iterations=1500):
                 )
                 gradient += (sigmoid(z) - y[i]) * x[i][j]
             theta[j] = theta[j] - ((alpha/m) * gradient)
-        print('Current Error is:', costFunction(x, y, m, theta))
+        currentLoss = costFunction(x, y, m, theta)
+        if type(lossList) is list:
+            lossList.append(currentLoss)
+        print('Current Error is:', currentLoss)
     return theta
 
 def test(x, y, m, theta):
@@ -62,6 +68,7 @@ def submit(theta, dataset):
     submission = submission.set_index('PassengerId')
     print(count, total)
     submission.to_csv('data/submission.csv')
+    os.system('kaggle competitions submit -c titanic -f data/submission.csv -m \"new Message\"')
 
 def replaceNans(dataframe, columnName):
     for index, row in dataframe.iterrows():
@@ -69,31 +76,34 @@ def replaceNans(dataframe, columnName):
             dataframe.loc[index, columnName] = dataframe[columnName].mean()
 
 if __name__ == '__main__':
-
+    lossList = []
     training_data = pd.read_csv('data/train.csv')
     testing_data = pd.read_csv('data/test.csv')
     #print(training_data.head())
-    #print(training_data.corr())
+    print(training_data.corr())
     print(training_data['Fare'].isnull().values.any()) # No null values for fare
     print(training_data['Age'].isnull().values.any())
     replaceNans(training_data, 'Age') # Replace Nan's with average age
     print(training_data['Age'].isnull().values.any())
-
     X = np.asarray([[age/100, fare/100] for age, fare  in zip(training_data['Age'], training_data['Fare'])])
     y = np.asarray(training_data['Survived'])
     training_features, testing_features, training_output, testing_output = train_test_split(X, y, test_size=0.3,
                                                                                             train_size=0.7,
                                                                                             random_state=42)
-    theta = np.random.uniform(0, 0.1, size=len(training_features[0]))
+    theta = np.random.uniform(-1/(math.sqrt(2)), 1/(math.sqrt(2)), size=len(training_features[0]))
     print('Final theta\'s \n', gradientDescent(training_features, training_output, len(training_features[0]), theta,
-                                               0.01))
+                                               0.01, iterations=600000, lossList=lossList))
     print(testing_data['Fare'].isnull().values.any()) # Prints True
     print(testing_data['Age'].isnull().values.any()) # Prints True
     replaceNans(testing_data, 'Fare')
     replaceNans(testing_data, 'Age')
     print(testing_data['Fare'].isnull().values.any())
     print(testing_data['Age'].isnull().values.any())
-
     submit(theta, testing_data)
     accuracy_rate, error_rate = test(testing_features, testing_output, len(testing_output), theta)
     print('Accuracy: {accuracy} \nError: {error}'.format(accuracy=accuracy_rate, error=error_rate))
+    plt.plot([i for i in range(len(lossList))], lossList)
+    plt.title('Loss Graphed')
+    plt.xlabel('Iterations')
+    plt.ylabel('Loss')
+    plt.savefig('LossGraph')

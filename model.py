@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pylab
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_curve, auc
 
 def sigmoid(z):
     return 1/(1 + np.exp(-z))
@@ -41,19 +42,22 @@ def gradientDescent(x, y, m, theta, alpha, iterations=1500, lossList=None):
 
 def test(x, y, m, theta):
     correct = 0
+    predictedValues = []
     for i in range(m):
         z = np.dot(
                 np.transpose(theta),
                 x[i]
             )
         predicted_value = sigmoid(z)
+        predictedValues.append(predicted_value)
         if predicted_value >= 0.5 and y[i] == 1:
             correct += 1
         elif predicted_value < 0.5 and y[i] == 0:
             correct += 1
-    return correct/m, (1 - (correct/m))
+    return correct/m, (1 - (correct/m)), predictedValues
 
 def submit(theta, dataset):
+
     data = {'PassengerId': [], 'Survived': []}
     submission = pd.DataFrame(data=data, dtype=int)
     count = 0
@@ -100,10 +104,23 @@ if __name__ == '__main__':
     print(testing_data['Fare'].isnull().values.any())
     print(testing_data['Age'].isnull().values.any())
     submit(theta, testing_data)
-    accuracy_rate, error_rate = test(testing_features, testing_output, len(testing_output), theta)
+    accuracy_rate, error_rate, predictions = test(testing_features, testing_output, len(testing_output), theta)
     print('Accuracy: {accuracy} \nError: {error}'.format(accuracy=accuracy_rate, error=error_rate))
     plt.plot([i for i in range(len(lossList))], lossList)
     plt.title('Loss Graphed')
     plt.xlabel('Iterations')
     plt.ylabel('Loss')
     plt.savefig('LossGraph')
+    preds = predictions
+    fpr, tpr, threshold = roc_curve(testing_output, preds)
+    roc_auc = auc(fpr, tpr)
+    plt.title('Receiver Operating Characteristic')
+    plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
+    plt.legend(loc = 'lower right')
+    plt.plot([0, 1], [0, 1],'r--')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.show()
+

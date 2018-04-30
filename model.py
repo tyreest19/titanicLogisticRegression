@@ -122,5 +122,4 @@ if __name__ == '__main__':
     plt.ylim([0, 1])
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
-    plt.show()
-
+    plt.savefig('RocGraph')
